@@ -1,11 +1,13 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { defineConfig, Plugin } from 'vite';
 import dotenv from 'dotenv';
-import { solveAcademicProblem, explainUniverseConcept } from './src/server/geminiService';
 
 dotenv.config();
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function apiServerPlugin(): Plugin {
   return {
@@ -32,6 +34,7 @@ function apiServerPlugin(): Plugin {
             res.setHeader('Content-Type', 'application/json');
             try {
               const body = bodyStr ? JSON.parse(bodyStr) : {};
+              const { solveAcademicProblem, explainUniverseConcept } = await import('./src/server/geminiService.ts');
 
               if (req.url === '/api/solve-problem') {
                 const result = await solveAcademicProblem(body);
@@ -79,4 +82,3 @@ export default defineConfig(() => {
     },
   };
 });
-
