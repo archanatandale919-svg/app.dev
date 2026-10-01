@@ -2,7 +2,15 @@ import { GoogleGenAI, Type } from '@google/genai';
 
 // Initialize Gemini on server-side with required User-Agent
 function getGenAIClient(): GoogleGenAI {
-  const apiKey = process.env.GEMINI_API_KEY || '';
+  const apiKey =
+    process.env.GEMINI_API_KEY ||
+    process.env.VITE_GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.VITE_GOOGLE_API_KEY ||
+    process.env.GOOGLE_GENAI_API_KEY ||
+    process.env.GEMINI_KEY ||
+    '';
+
   if (!apiKey) {
     throw new Error(
       'GEMINI_API_KEY is not set. In AI Studio, ensure secrets are attached. If deployed on Vercel/hosting, add GEMINI_API_KEY in Project Settings > Environment Variables.'
