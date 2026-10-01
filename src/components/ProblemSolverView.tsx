@@ -60,6 +60,7 @@ export const ProblemSolverView: React.FC<ProblemSolverViewProps> = ({
   const [currentResult, setCurrentResult] = useState<StudyProblem | null>(initialProblem || null);
   const [activeTab, setActiveTab] = useState<'both' | 'simple' | 'rigorous' | 'steps' | 'practice'>('both');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
   const [showQuizExplanation, setShowQuizExplanation] = useState<Record<number, boolean>>({});
 
@@ -85,6 +86,7 @@ export const ProblemSolverView: React.FC<ProblemSolverViewProps> = ({
     if (!question.trim() && !imagePreview) return;
 
     setIsLoading(true);
+    setErrorMessage(null);
     setLoadingStep('Analyzing question structure & grade-level context...');
 
     try {
@@ -105,7 +107,8 @@ export const ProblemSolverView: React.FC<ProblemSolverViewProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to solve problem: ${response.statusText}`);
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || `Server responded with ${response.statusText} (${response.status})`);
       }
 
       const data = await response.json();
@@ -135,8 +138,8 @@ export const ProblemSolverView: React.FC<ProblemSolverViewProps> = ({
       // Auto-save to cloud/local
       await onSaveProblem(newProblem);
     } catch (err: any) {
-      console.error(err);
-      alert('Error solving problem: ' + (err.message || 'Please try again.'));
+      console.error('Solve problem error:', err);
+      setErrorMessage(err.message || 'Failed to solve problem. Please check your network or try again.');
     } finally {
       setIsLoading(false);
       setLoadingStep('');
@@ -342,6 +345,42 @@ export const ProblemSolverView: React.FC<ProblemSolverViewProps> = ({
               <p className="text-xs text-[#51606f] dark:text-[#b8c8da]">
                 {loadingStep}
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Error State Banner */}
+        {errorMessage && (
+          <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-900/60 flex items-start justify-between gap-3 text-red-900 dark:text-red-200">
+            <div className="flex items-start gap-2.5">
+              <span className="material-symbols-outlined text-red-600 dark:text-red-400 text-xl shrink-0 mt-0.5">
+                error
+              </span>
+              <div className="space-y-1">
+                <p className="text-xs font-bold">Could not complete request</p>
+                <p className="text-xs text-red-800 dark:text-red-300">{errorMessage}</p>
+                {errorMessage.includes('GEMINI_API_KEY') && (
+                  <p className="text-[11px] text-red-700 dark:text-red-400 font-medium">
+                    Tip: Add <code className="bg-red-100 dark:bg-red-900/40 px-1 py-0.5 rounded font-mono">GEMINI_API_KEY</code> in your Vercel Project Settings &gt; Environment Variables.
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleSolve}
+                className="px-3 py-1 rounded-full bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition-colors"
+              >
+                Retry
+              </button>
+              <button
+                type="button"
+                onClick={() => setErrorMessage(null)}
+                className="p-1 text-red-600 dark:text-red-400 hover:text-red-800"
+              >
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
             </div>
           </div>
         )}

@@ -80,11 +80,13 @@ export const UniverseExplorerView: React.FC<UniverseExplorerViewProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ConceptNote | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleExplore = async (conceptName: string) => {
     if (!conceptName.trim()) return;
 
     setIsLoading(true);
+    setErrorMessage(null);
     setSelectedConcept(conceptName);
 
     try {
@@ -98,7 +100,8 @@ export const UniverseExplorerView: React.FC<UniverseExplorerViewProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch concept explanation');
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || `Server responded with ${response.statusText} (${response.status})`);
       }
 
       const data = await response.json();
@@ -122,8 +125,8 @@ export const UniverseExplorerView: React.FC<UniverseExplorerViewProps> = ({
       setResult(newNote);
       await onSaveConcept(newNote);
     } catch (err: any) {
-      console.error(err);
-      alert('Error exploring concept: ' + (err.message || 'Please try again.'));
+      console.error('Explore concept error:', err);
+      setErrorMessage(err.message || 'Failed to explain concept. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -205,6 +208,42 @@ export const UniverseExplorerView: React.FC<UniverseExplorerViewProps> = ({
             )}
           </button>
         </div>
+
+        {/* Error State Banner */}
+        {errorMessage && (
+          <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-900/60 flex items-start justify-between gap-3 text-red-900 dark:text-red-200">
+            <div className="flex items-start gap-2.5">
+              <span className="material-symbols-outlined text-red-600 dark:text-red-400 text-xl shrink-0 mt-0.5">
+                error
+              </span>
+              <div className="space-y-1">
+                <p className="text-xs font-bold">Could not explain concept</p>
+                <p className="text-xs text-red-800 dark:text-red-300">{errorMessage}</p>
+                {errorMessage.includes('GEMINI_API_KEY') && (
+                  <p className="text-[11px] text-red-700 dark:text-red-400 font-medium">
+                    Tip: Add <code className="bg-red-100 dark:bg-red-900/40 px-1 py-0.5 rounded font-mono">GEMINI_API_KEY</code> in your Vercel Project Settings &gt; Environment Variables.
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleExplore(selectedConcept || customConcept)}
+                className="px-3 py-1 rounded-full bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition-colors"
+              >
+                Retry
+              </button>
+              <button
+                type="button"
+                onClick={() => setErrorMessage(null)}
+                className="p-1 text-red-600 dark:text-red-400 hover:text-red-800"
+              >
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Explored Result View */}

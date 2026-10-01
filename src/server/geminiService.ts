@@ -3,6 +3,11 @@ import { GoogleGenAI, Type } from '@google/genai';
 // Initialize Gemini on server-side with required User-Agent
 function getGenAIClient(): GoogleGenAI {
   const apiKey = process.env.GEMINI_API_KEY || '';
+  if (!apiKey) {
+    throw new Error(
+      'GEMINI_API_KEY is not set. In AI Studio, ensure secrets are attached. If deployed on Vercel/hosting, add GEMINI_API_KEY in Project Settings > Environment Variables.'
+    );
+  }
   return new GoogleGenAI({
     apiKey,
     httpOptions: {
@@ -29,9 +34,50 @@ export interface ExplainConceptRequest {
   domain?: string;
 }
 
+// Resilient runner that tries primary model and falls back if unavailable
+async function generateWithFallback(ai: GoogleGenAI, params: any) {
+  const models = ['gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest'];
+  let lastError: any = null;
+
+  for (const model of models) {
+    try {
+      const response = await ai.models.generateContent({
+        ...params,
+        model,
+      });
+      if (response && response.text) {
+        return response.text;
+      }
+    } catch (err: any) {
+      console.warn(`Model ${model} failed with:`, err.message || err);
+      lastError = err;
+      // Continue to next model fallback
+    }
+  }
+
+  throw lastError || new Error('All model providers failed to generate content.');
+}
+
+function parseJsonSafely(text: string) {
+  const cleaned = text
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+  return JSON.parse(cleaned);
+}
+
 export async function solveAcademicProblem(req: SolveProblemRequest) {
   const ai = getGenAIClient();
-  const { question, gradeLevel, subject = 'General Academic', tone = 'conversational', imageBase64, imageMimeType, highPrecisionMode = true } = req;
+  const {
+    question,
+    gradeLevel,
+    subject = 'General Academic',
+    tone = 'conversational',
+    imageBase64,
+    imageMimeType,
+    highPrecisionMode = true,
+  } = req;
 
   const systemPrompt = `You are OmniStudy AI, a world-class academic tutor and universal scholar capable of explaining any concept in the universe to any student from Elementary to Graduate/Research level.
 
@@ -66,8 +112,7 @@ Always return clean, valid JSON matching the specified schema.`;
     text: `Solve and explain this academic problem for a student at the ${gradeLevel} level:\n\n${question}`,
   });
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3.8-flash',
+  const rawText = await generateWithFallback(ai, {
     contents: contents.length === 1 ? contents[0].text : { parts: contents },
     config: {
       systemInstruction: systemPrompt,
@@ -144,8 +189,7 @@ Always return clean, valid JSON matching the specified schema.`;
     },
   });
 
-  const text = response.text || '{}';
-  return JSON.parse(text);
+  return parseJsonSafely(rawText);
 }
 
 export async function explainUniverseConcept(req: ExplainConceptRequest) {
@@ -166,8 +210,7 @@ Requirements:
 
 Always return clean, valid JSON matching the specified schema.`;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3.8-flash',
+  const rawText = await generateWithFallback(ai, {
     contents: `Explain the concept: "${concept}" for a ${gradeLevel} student.`,
     config: {
       systemInstruction: systemPrompt,
@@ -210,6 +253,5 @@ Always return clean, valid JSON matching the specified schema.`;
     },
   });
 
-  const text = response.text || '{}';
-  return JSON.parse(text);
+  return parseJsonSafely(rawText);
 }
