@@ -4,6 +4,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
+import './index.css';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from './lib/firebase';
 import {
@@ -320,3 +322,12 @@ export default function App() {
     </div>
   );
 }
+
+// Auto-mount to #root if loaded directly as Vite entry point
+if (typeof document !== 'undefined') {
+  const container = document.getElementById('root');
+  if (container && !container.hasChildNodes()) {
+    createRoot(container).render(<App />);
+  }
+}
+
