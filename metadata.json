@@ -1,0 +1,6 @@
+{
+  "name": "OmniStudy AI - Universal Academic Assistant",
+  "description": "Universal student AI tutor with Material 3 design, step-by-step problem solver, concept simplifier across all grade levels, formula rendering, and secure cloud storage.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

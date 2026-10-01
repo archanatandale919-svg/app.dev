@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net: Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity Validators
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             data.gradeLevel is string && data.gradeLevel.size() <= 50;
+    }
+
+    function isValidStudyProblem(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.question is string && data.question.size() <= 5000 &&
+             data.simplifiedExplanation is string && data.simplifiedExplanation.size() <= 10000 &&
+             data.rigorousSolution is string && data.rigorousSolution.size() <= 15000;
+    }
+
+    function isValidConceptNote(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.simpleAnalogy is string && data.simpleAnalogy.size() <= 4000 &&
+             data.deepDive is string && data.deepDive.size() <= 12000;
+    }
+
+    // Collection: Users
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(incoming()) && incoming().userId == userId;
+      allow update: if isOwner(userId) && isValidUserProfile(incoming()) && incoming().userId == existing().userId;
+      allow delete: if isOwner(userId);
+    }
+
+    // Collection: Problems
+    match /problems/{problemId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidId(problemId) && isValidStudyProblem(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == existing().userId && isValidId(problemId) && isValidStudyProblem(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid && isValidId(problemId);
+    }
+
+    // Collection: Concepts
+    match /concepts/{conceptId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidId(conceptId) && isValidConceptNote(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == existing().userId && isValidId(conceptId) && isValidConceptNote(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid && isValidId(conceptId);
+    }
+  }
+}

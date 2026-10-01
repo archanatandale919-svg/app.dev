@@ -1,0 +1,179 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with academic grade level, preferences, and study metrics.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user.",
+          "maxLength": 128
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Full name or nickname of the student.",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address.",
+          "maxLength": 150
+        },
+        "gradeLevel": {
+          "type": "string",
+          "description": "Current academic grade level.",
+          "enum": ["elementary", "middle_school", "high_school", "undergraduate", "graduate_research"]
+        },
+        "preferredTone": {
+          "type": "string",
+          "description": "Tone of explanation (eli5, conversational, structured_academic, rigorous_proof).",
+          "enum": ["eli5", "conversational", "structured_academic", "rigorous_proof"]
+        },
+        "favoriteSubjects": {
+          "type": "array",
+          "description": "Array of preferred study subjects."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp or server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp or server timestamp."
+        }
+      },
+      "required": ["userId", "displayName", "gradeLevel"]
+    },
+    "StudyProblem": {
+      "title": "StudyProblem",
+      "description": "Academic problem solved with simple explanation and step-by-step high precision proof.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the problem record.",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner student UID.",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Title or summary of the question.",
+          "maxLength": 200
+        },
+        "question": {
+          "type": "string",
+          "description": "The full academic question or problem text.",
+          "maxLength": 5000
+        },
+        "subject": {
+          "type": "string",
+          "description": "Academic discipline.",
+          "maxLength": 80
+        },
+        "gradeLevel": {
+          "type": "string",
+          "description": "Grade level targeted.",
+          "maxLength": 50
+        },
+        "simplifiedExplanation": {
+          "type": "string",
+          "description": "Simple plain-language conceptual breakdown and analogy.",
+          "maxLength": 10000
+        },
+        "rigorousSolution": {
+          "type": "string",
+          "description": "High-precision step-by-step mathematical proof / derivation / solution.",
+          "maxLength": 15000
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the problem.",
+          "enum": ["solved", "bookmarked", "mastered"]
+        },
+        "keyTakeaways": {
+          "type": "array",
+          "description": "Core principles learned."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO creation time."
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO update time."
+        }
+      },
+      "required": ["id", "userId", "title", "question", "simplifiedExplanation", "rigorousSolution"]
+    },
+    "ConceptNote": {
+      "title": "ConceptNote",
+      "description": "Universal concept note, flashcard, or knowledge entry saved in the cloud.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the concept note.",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner student UID.",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Name of the universal concept.",
+          "maxLength": 200
+        },
+        "domain": {
+          "type": "string",
+          "description": "Domain of science, arts, or humanities.",
+          "maxLength": 80
+        },
+        "simpleAnalogy": {
+          "type": "string",
+          "description": "Everyday intuitive analogy explaining the concept.",
+          "maxLength": 4000
+        },
+        "deepDive": {
+          "type": "string",
+          "description": "Rigorous explanation with formal definitions and formulas.",
+          "maxLength": 12000
+        },
+        "masteryLevel": {
+          "type": "string",
+          "description": "Student's mastery of this concept.",
+          "enum": ["learning", "practicing", "mastered"]
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO creation time."
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO update time."
+        }
+      },
+      "required": ["id", "userId", "title", "simpleAnalogy", "deepDive"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Stores user profiles with grade level and learning preferences."
+    },
+    "/problems/{problemId}": {
+      "schema": "StudyProblem",
+      "description": "Stores academic problems, step-by-step solutions, and simplified explanations."
+    },
+    "/concepts/{conceptId}": {
+      "schema": "ConceptNote",
+      "description": "Stores student concept notes, universal explanations, and flashcards."
+    }
+  }
+}
